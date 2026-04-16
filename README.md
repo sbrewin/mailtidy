@@ -10,7 +10,7 @@ Enter **MailTidy**, which creates a summary for each unique sender domain or eac
 
 ### Installation from the PyPi Repository
 
-Run the command `pip install -i https://test.pypi.org/simple/ mailtidy`. This will install the latest version of **MailTidy** published to the PyPi repository into your active Python envirornment.  
+Run the command `pip install mailtidy`. This will install the latest version of **MailTidy** published to the PyPi repository into your active Python envirornment.  
 
 ### Installation from Source
    1. Python Poetry is used to build, install and publish **MailTidy**. If not already installed, follow these instructions - <https://python-poetry.org/docs/#installation>
