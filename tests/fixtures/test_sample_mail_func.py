@@ -1,6 +1,8 @@
 from datetime import datetime,timezone
 
 def test_sample_mail_func(sample_mail_func):
+    '''Test the sample_mail_func fixture to ensure it generates a MailMessage instance
+    with the expected attributes.'''
     now = datetime.now(timezone.utc)
     date_str = now.strftime('%a, %d %b %Y %H:%M:%S %z')
     sample_mail = sample_mail_func(sender="someone@someplace.com", date=date_str)

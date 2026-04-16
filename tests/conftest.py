@@ -41,7 +41,7 @@ def sample_mail_func() -> callable:
         txt = """Delivered-To: mailtest@somewhere.com
 Return-Path: <""" + sender + """>
 Received: from node.example by x.y.test; """ + date + """
-Message-Id: <6B7EC235-5B17-4CA8-B2B8-39290DEB43A3@test.lindsaar.net>
+Message-Id: <1234@mtest.machine.local>
 From: <""" + sender + """"
 To: Mail Test <mailtest@somewhere.com>
 Content-Type: text/plain; charset=US-ASCII; format=flowed

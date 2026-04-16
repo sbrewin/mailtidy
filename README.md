@@ -5,19 +5,17 @@ Much received mail, which while not spam, ceases to be revelant over time. Best 
 
 Enter **MailTidy**, which creates a summary for each unique sender domain or each unique sender and allows an action to be performed against each summary. These actions can be filtered by age. For example, to delete mails received from the domain `somewhere.com` or the unique sender `someone@somewhere.com` older than 365 days the DELETE action is specified with an age of 365. 
 
-> **NOTE:** As of now **MailTidy** has been tested on `*nix` derivative operating systems such as `Linux` and `macOS`. While it should work fine on `Windows` without code changes the following instructions may reuire adjustement. Contributions welcome.
-
 ## Installation
 **MailTidy** can be installed from the PyPi repository or be built and installed from source.
 
 ### Installation from the PyPi Repository
 
-TBC
+Run the command `pip install -U mailtidy`. This will install the latest version of **MailTidy** published to the PyPi repository into your active Python envirornment.  
 
 ### Installation from Source
-   1. Python Poetry is used to build, install and publish **MailTidy**. If not already installed, [follow these instructions](https://python-poetry.org/docs/#installation)
-   2. Clone the source code from GitHub ??? URL ???
-   3. From the project's root directory execute `poetry install` to build and install the **MailTidy** module. 
+   1. Python Poetry is used to build, install and publish **MailTidy**. If not already installed, follow these instructions - <https://python-poetry.org/docs/#installation>
+   2. Clone the source code from the Git repository - <https://github.com/sbrewin/mailtidy.git>
+   3. From the project's root directory execute `poetry install` to build and install **MailTidy** into your active Python envvironemnt. 
 
 ### Configure the IMAP account
     
@@ -38,9 +36,13 @@ The account details are stored in the YAML formatted file `connection_data.yml` 
   password: mysecret
   ```
 
-  > **IMPORTANT:** Secure the credentials stored within `connection_data.yml` by restricting acesss the owner by executing the command `chmod 600 ~/.mail_tidy/connection_data.yml` 
+  > **IMPORTANT:** Secure the credentials stored within `connection_data.yml` by restricting acesss to the owner. 
+  >
+  >On *nix type systems, execute the command `chmod 600 ~/.mail_tidy/connection_data.yml`. 
+  >
+  >On Windows, right-click on the `connection_data` file and select `> Properties > Security` to restrict access.   
 
-## Workflow Overview
+## Workflow
 The **MailTidy** workflow consists of the following steps:
 1. Create summaries by executing `python mailtidy summarise` 
     
@@ -116,13 +118,11 @@ The below lists the supported Python Action enumeration, the action performed an
   - Print the headers of the selected emails to `stdout`
   - `!Action 'print_headers'`
 
-## Future
+## Future Features
 There are many features that might be added to **MailTidy**. 
 
-Amongst which are filters on mail status, such as ```answered``` to retain converstaions regardless of their age.  
+Amongst these are:
+- Filters on the flags described in <https://www.rfc-editor.org/rfc/rfc3501.html#section-2.3.2mail>, such as ```seen``` and ```flagged``` to include or exclude such mails from the summaries
+- A whitelist of domains or specific users to be excluded from the summaries
 
-But don't hold your breath as **MailTidy** is not a priority project for me. Just something I required to cleanup multiple mail accounts I'd neglected for far too long. 
-
-Something I have chosen to publish should it be of help to others. 
-
-Ideas are welcome, especially so if backed by code contibutions 😏. 
+Ideas are welcome. Code contibutions particularly so 😏 

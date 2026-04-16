@@ -1,18 +1,28 @@
 [project]
 name = "mailtidy"
-version = "0.1.0"
+version = "0.1.5"
 description = "MailTidy enables the cleanup of an IMAP mail account by deleteting the accumulated dross while retaining relevant mails."
+readme = "README.md"
 authors = [
     {name = "Steve Brewin", email = "sbrewin@synsys.com"}
 ]
-repository = "https://github.com/sbrewin/mailtidy.git"
-readme = "README.md"
+classifiers = [
+    "Topic :: Communications :: Email",
+    "Topic :: Communications :: Email :: Post-Office :: IMAP",
+    "Topic :: Communications :: Email :: Filters",
+    "Topic :: Utilities"
+]
 requires-python = ">=3.13"
 dependencies = [
     "imap-tools (>=1.11, <2.0)",
     "tqdm (>=4.67, <5.0)",
     "PyYAML (>=6.0.3, <7.0)"
 ]
+
+[project.urls]
+repository = "https://github.com/sbrewin/mailtidy.git"
+homepage = "https://github.com/sbrewin/mailtidy/blob/main/README.md"
+issues = "https://github.com/sbrewin/mailtidy/issues"
 
 [dependency-groups]
 test = [
@@ -23,7 +33,6 @@ test = [
 [tool.poetry]
 license = "Apache-2.0"
 packages = [{include = "mailtidy", from = "src"}]
-
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
