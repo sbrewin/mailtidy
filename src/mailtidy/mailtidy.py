@@ -285,11 +285,11 @@ def main() -> None:
     logger.debug(f"Loaded connection data for: {imap_data.email} at {imap_data.imap_server}:{imap_data.port}")
     manager = MailboxManager(imap_data, dry_run=args.dry_run, unique=args.unique)
     try:
-        with manager.connect() as mailbox:
-            if args.command == 'summarise':
-                rc = SummaryCommand(manager, args.file).execute()
-            elif args.command == 'apply':
-                rc = ApplyCommand(manager, args.file).execute()
+        manager.connect()
+        if args.command == 'summarise':
+            rc = SummaryCommand(manager, args.file).execute()
+        elif args.command == 'apply':
+            rc = ApplyCommand(manager, args.file).execute()
     finally:
         if manager.mailbox:
             #manager.disconnect()
