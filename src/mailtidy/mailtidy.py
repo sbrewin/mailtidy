@@ -297,4 +297,4 @@ def main() -> None:
     exit(rc)
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    main()

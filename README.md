@@ -44,7 +44,7 @@ The account details are stored in the YAML formatted file `connection_data.yml` 
 
 ## Workflow
 The **MailTidy** workflow consists of the following steps:
-1. Create summaries by executing `python mailtidy summarise` 
+1. Create summaries by executing `python3 -m mailtidy summarise` 
     
     This creates a YAML formatted file containing entries for each sender in the configured IMAP account. By default summaries are created for each unique sender domain. Use the `-u` option to create a summary for each unique sender.
     
@@ -54,7 +54,7 @@ The **MailTidy** workflow consists of the following steps:
 
 2. It can take some time to summarise accounts with a large number of mails. Once done it is recommended that the produced `summaries.yml` file is copied to avoid the need to run a summary repeatedly while experimenting with the options.
 3. Having created a copy of `summaries.yml` file edit the original to ammend the required Actions and ages. Initially, you may wish to process just a subset of the senders. To do simply leave the summaries for those you do not wish to process alone.
-4. Apply the Actions by executing `python mailtidy apply`
+4. Apply the Actions by executing `python3 -m mailtidy apply`
    1. Dry runs are supported and recommended prior to making destructive changes. Specify `-n` or `--dry-run` on the command line. 
 
 ## Summaries
@@ -119,9 +119,7 @@ The below lists the supported Python Action enumeration, the action performed an
   - `!Action 'print_headers'`
 
 ## Future Features
-There are many features that might be added to **MailTidy**. 
-
-Amongst these are:
+There are many features that might be added to **MailTidy**. Amongst these are:
 - Filters on the flags described in <https://www.rfc-editor.org/rfc/rfc3501.html#section-2.3.2mail>, such as ```seen``` and ```flagged``` to include or exclude such mails from the summaries
 - A whitelist of domains or specific users to be excluded from the summaries
 
