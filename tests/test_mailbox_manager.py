@@ -2,13 +2,11 @@ from mailtidy.mailtidy import MailboxManager
 from pytest_mock import MockerFixture 
 
 def test_constructor(imap_connection_data, mock_mailbox):
-    manager = MailboxManager(connection_data=imap_connection_data, dry_run=True, unique=True, mailbox=mock_mailbox)
+    manager = MailboxManager(connection_data=imap_connection_data, mailbox=mock_mailbox)
     assert manager.imap_server == imap_connection_data.imap_server
     assert manager.port == imap_connection_data.port
     assert manager.email == imap_connection_data.email
-    assert manager.password == imap_connection_data.password
-    assert manager.dry_run is True
-    assert manager.unique is True              
+    assert manager.password == imap_connection_data.password       
     assert manager.mailbox == mock_mailbox 
 
 def test_constructor_defaults(imap_connection_data, mock_mailbox):
@@ -17,8 +15,6 @@ def test_constructor_defaults(imap_connection_data, mock_mailbox):
     assert manager.port == imap_connection_data.port
     assert manager.email == imap_connection_data.email
     assert manager.password == imap_connection_data.password
-    assert manager.dry_run is False
-    assert manager.unique is False
     assert manager.mailbox == mock_mailbox
 
 def test_connect(imap_connection_data, mock_mailbox):

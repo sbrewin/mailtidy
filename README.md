@@ -42,6 +42,13 @@ The account details are stored in the YAML formatted file `connection_data.yml` 
   >
   >On Windows, right-click on the `connection_data` file and select `> Properties > Security` to restrict access.   
 
+## Help
+Help for the commands and options supported by **MailTidy** is available via the command line. For an oveview use the `-help` option, which lists the common options and the supported commands. For help with each supported command, precede `-help` with the name of the command.
+```shell
+python3 -m mailtidy -help  
+python3 -m mailtidy summarise -help 
+python3 -m mailtidy apply -help 
+```
 ## Workflow
 The **MailTidy** workflow consists of the following steps:
 1. Create summaries by executing `python3 -m mailtidy summarise` 
@@ -52,16 +59,25 @@ The **MailTidy** workflow consists of the following steps:
 
     Each summary is created with the default action of NONE and an age of 0. If applied, no changes will occur.
 
+    By default, a summary is created per sender domain. To create a summry for each unique sender specify the `-u`or `--unique`` option.
+
 2. It can take some time to summarise accounts with a large number of mails. Once done it is recommended that the produced `summaries.yml` file is copied to avoid the need to run a summary repeatedly while experimenting with the options.
-3. Having created a copy of `summaries.yml` file edit the original to ammend the required Actions and ages. Initially, you may wish to process just a subset of the senders. To do simply leave the summaries for those you do not wish to process alone.
+3. Having created a copy of `summaries.yml` file edit the original to ammend the required Actions and ages. Initially, you may wish to process just a subset of the senders. To do this simply leave the summaries for those you do not wish to process alone.
 4. Apply the Actions by executing `python3 -m mailtidy apply`
-   1. Dry runs are supported and recommended prior to making destructive changes. Specify `-n` or `--dry-run` on the command line. 
+   1. Actions can be restricted to a minimum and maximum number of mails recived from a sender.
+   
+      To limit an Action to senders who have received a minimum number of mails from a sender. On the command line specify  `-cn` or `--min-count` with an inetger > 0.
+
+      To limit an Action to senders who have received a maximum number of mails from a sender. On the command line specify  `-cx` or `--max-count` with an inetger > 0.
+
+      To limit an Action to senders who have received a number of mails from a sender within a range. On the command line specify both `-cn` or `--min-count` and `-cx` or `--max-count`. Both with an inetger > 0, where the minimum must be <= to the maximum.
+   2. Dry runs are supported and recommended prior to making destructive changes. Specify `-n` or `--dry-run` on the command line.
 
 ## Summaries
 A **MailTidy** summary contains:
 - The mail address of the sender
   - This may be the full email of the sender - `someone@somewhere.com` - or the domain name - `somewhere.com`
-- The number of mails received from the sender
+- A count of the number of mails received from the sender
 - The UTC first date and time a mail from the sender was received  
 - The UTC last date and time a mail from the sender was received 
   

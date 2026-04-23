@@ -55,15 +55,13 @@ class IMAPConnectionData:
 class MailboxManager:
     """Handles mailbox operations."""
     
-    def __init__(self, connection_data: IMAPConnectionData, dry_run: bool = False, unique=False, mailbox: MailBox = None) -> None:
+    def __init__(self, connection_data: IMAPConnectionData, mailbox: MailBox = None) -> None:
         """Initialize the mailbox manager.
         """
         self.imap_server = connection_data.imap_server
         self.port = connection_data.port
         self.email = connection_data.email
         self.password = connection_data.password
-        self.dry_run = dry_run
-        self.unique = unique
         if mailbox:
             self.mailbox = mailbox
         else:
@@ -98,7 +96,7 @@ class MailboxManager:
             f"(BODY{'' if mark_seen else '.PEEK'}[{'HEADER' if headers_only else ''}] UID FLAGS RFC822.SIZE)"
         return self.mailbox._fetch_in_bulk(uid_list=uids, message_parts=message_parts, reverse=False, bulk=3)
     
-    def fetch_summaries(self) -> dict:
+    def fetch_summaries(self, unique: bool = False) -> dict:
         '''Fetch a map of summaries of emails keyed by sender.
         '''
         if not self.logged_in:
@@ -107,19 +105,19 @@ class MailboxManager:
 
         with tqdm(total=len(self.mailbox.uids()), desc="Processing emails") as pbar:
             for msg in self.mailbox.fetch(mark_seen=False, headers_only=False, bulk=DEFAULT_BULK_SIZE):
-                self.summarise_message(summaries, msg)
+                self.summarise_message(summaries, msg, unique)
                 pbar.update(1)
         logger.info(f"Found {len(summaries)} senders.")
         return summaries
     
-    def summarise_message(self, summaries: dict, msg: MailMessage) -> None:
+    def summarise_message(self, summaries: dict, msg: MailMessage, unique: bool) -> None:
         if not msg.from_:
             logger.warning(f"Email with UID {msg.uid} has no sender. Skipping.")
             return
         if not msg.date:
             logger.warning(f"Email with UID {msg.uid} has no date. Skipping.")
             return
-        if self.unique:
+        if unique:
             # If unique is True, use the entire sender string as the key, which may include the name and email address.
             sender = msg.from_
         else:
@@ -161,12 +159,8 @@ class MailboxManager:
         if not self.logged_in:
             self.connect()
         deleted = []
-        if self.dry_run:
-            logger.info(f"DRY RUN: Would delete {len(uids)} emails in batches of {bulk} ...")
-        else:
-            logger.info(f"Deleting {len(uids)} emails in batches of {bulk} ...")
-            deleted =self.mailbox.delete(uids, bulk)
-        return deleted
+        logger.info(f"Deleting {len(uids)} emails in batches of {bulk} ...")
+        return self.mailbox.delete(uids, bulk)
     
     '''Move emails with the specified UIDs to the "Archive" folder.
     '''
@@ -209,7 +203,7 @@ class SummaryCommand:
 
     def execute(self) -> int:
         """Execute the summarisation command."""
-        summaries = self.manager.fetch_summaries()
+        summaries = self.manager.fetch_summaries(unique=self.unique)
         with open(self.output_file, mode="wt", encoding="utf-8") as file:
             logger.info(f"Dumping summaries to {self.output_file} ...")
             file.write(dump(sorted(summaries.values(), key=lambda s: s.from_)))
@@ -217,10 +211,12 @@ class SummaryCommand:
 
 class ApplyCommand:
     """Command to apply actions to emails in the mailbox based on summaries."""
-    def __init__(self, manager: MailboxManager, input_file: str, dry_run: bool = False) -> None:
+    def __init__(self, manager: MailboxManager, input_file: str, dry_run: bool = False, min_count: int = 0, max_count: int = 0) -> None:
         self.manager = manager
         self.input_file = input_file
         self.dry_run = dry_run
+        self.min_count = min_count
+        self.max_count = max_count
 
     def execute(self) -> int:
         """Execute the apply command."""
@@ -229,14 +225,26 @@ class ApplyCommand:
         logger.info(f"Applying {len(summaries)} actions from {self.input_file} ...")
         for summary in summaries:
             logger.info(f"Processing sender \"{summary.from_}\" with action {summary.action} ...")
+            if summary.count < self.min_count:
+                logger.info(f"Skipping sender {summary.from_} with count {summary.count} below minimum count {self.min_count}.")
+                continue
+            if self.max_count > 0 and summary.count > self.max_count:
+                logger.info(f"Skipping sender {summary.from_} with count {summary.count} above maximum count {self.max_count}.")
+                continue
             try:
                 uids = self.manager.getUids(summary.from_, summary.age)
                 if summary.action == Action.NONE:
                     pass
                 if summary.action == Action.DELETE:
-                    self.manager.delete_uids(uids)
+                    if self.dry_run:
+                        logger.info(f"DRY RUN: Would delete {len(uids)} emails...")
+                    else:
+                        self.manager.delete_uids(uids)
                 elif summary.action == Action.ARCHIVE:
-                    self.manager.archive_uids(uids)
+                    if self.dry_run:
+                        logger.info(f"DRY RUN: Would archive {len(uids)} emails...")
+                    else:
+                        self.manager.archive_uids(uids)
                 elif summary.action == Action.PRINT_ALL:
                     self.manager.print_all_uids(uids)
                 elif summary.action == Action.PRINT_HEADERS:
@@ -251,30 +259,22 @@ class ApplyCommand:
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO)
-    parser = argparse.ArgumentParser(description='Mail client for fetching email summaries')
-    parser.add_argument('command', choices=['summarise', 'apply'], help='Command to execute: summarise or apply')
-    parser.add_argument('-f', '--file', type=str, default='summaries.yml',
-                       help='File to save email summaries (default: summaries.yml)')
-    parser.add_argument('-d', '--debug', action='store_true',
-                       help='Enable debug logging  (default: False)')
-    parser.add_argument('-n', '--dry-run', action='store_true',
-                       help='Perform a dry run without making changes  (default: False')
-    parser.add_argument('-u', '--unique', action='store_false',
-                       help='Summarise by unique sender (default: False)')
-    #TODO: Maybe add support for specifying connection data via command-line arguments, with the option to load from a YAML file as a fallback.
-    #parser.add_argument('-i', '--imap-server', type=str,
-    #                   help='IMAP server address)
-    #parser.add_argument('-p', '--port', type=int,
-    #                   help='IMAP server port')
-    #parser.add_argument('--email', type=str,
-    #                   help='Email address for authentication')
-    #parser.add_argument('--password', type=str,
-    #                   help='Password for authentication')
+
+    parser = argparse.ArgumentParser(description='Mail client for fetching and processing email summaries')
+    parser.add_argument('-f', '--file', type=str, default='summaries.yml', help='File in which to store email summaries (default: summaries.yml)')
+    parser.add_argument('-d', '--debug', action='store_true', help='Enable debug logging (default: False)')
+    subparsers = parser.add_subparsers(dest='command', required=True, help='Command to execute')
+    summarise_parser = subparsers.add_parser('summarise', help='Summarise emails in the mailbox')
+    summarise_parser.add_argument('-u', '--unique', action='store_false', help='Summarise by unique sender (default: False)')
+    apply_parser = subparsers.add_parser('apply', help='Apply actions to emails in the mailbox based on summaries')
+    apply_parser.add_argument('-f', '--file', type=str, default='summaries.yml', help='File to read email summaries from (default: summaries.yml)')
+    apply_parser.add_argument('-n', '--dry-run', action='store_true', help='Perform a dry run without making changes (default: False)')
+    apply_parser.add_argument('-nc', '--min-count', type=int, default=0, help='Minimum received message count (default: 0, no minimum, must be greater than or equal to max-count)')
+    apply_parser.add_argument('-xc', '--max-count', type=int, default=0, help='Maximum received message count (default: 0, no maximum, must be less than or equal to min-count)') 
     
     args = parser.parse_args()
     if args.debug:
         logging.getLogger().setLevel(logging.DEBUG)
-
     try:
         with open(DEFAULT_CONNECTION_DATA_PATH, mode="rt", encoding="utf-8") as file:
             logger.info(f"Loading connection data from {DEFAULT_CONNECTION_DATA_PATH}")
@@ -283,13 +283,13 @@ def main() -> None:
         logger.error(f"Connection data file not found: {DEFAULT_CONNECTION_DATA_PATH}")
         exit(1)
     logger.debug(f"Loaded connection data for: {imap_data.email} at {imap_data.imap_server}:{imap_data.port}")
-    manager = MailboxManager(imap_data, dry_run=args.dry_run, unique=args.unique)
+    manager = MailboxManager(imap_data)
     try:
         manager.connect()
         if args.command == 'summarise':
-            rc = SummaryCommand(manager, args.file).execute()
+            rc = SummaryCommand(manager, args.file, unique=args.unique).execute()
         elif args.command == 'apply':
-            rc = ApplyCommand(manager, args.file).execute()
+            rc = ApplyCommand(manager, args.file, dry_run=args.dry_run, min_count=args.min_count, max_count=args.max_count).execute()
     finally:
         if manager.mailbox:
             #manager.disconnect()

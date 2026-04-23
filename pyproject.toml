@@ -1,6 +1,6 @@
 [project]
 name = "mailtidy"
-version = "1.0.2"
+version = "1.0.3"
 description = "MailTidy enables the cleanup of an IMAP mail account by deleteting the accumulated dross while retaining relevant mails."
 readme = "README.md"
 authors = [
