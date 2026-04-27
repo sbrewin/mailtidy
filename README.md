@@ -10,12 +10,12 @@ Enter **MailTidy**, which creates a summary for each unique sender domain or eac
 
 ### Installation from the PyPi Repository
 
-Run the command `pip install mailtidy`. This will install the latest version of **MailTidy** published to the PyPi repository into your active Python envirornment.  
+Run the command `pip install mailtidy`. This will install the latest version of **MailTidy** published to the PyPi repository into your active Python environment.  
 
 ### Installation from Source
    1. Python Poetry is used to build, install and publish **MailTidy**. If not already installed, follow these instructions - <https://python-poetry.org/docs/#installation>
    2. Clone the source code from the Git repository - <https://github.com/sbrewin/mailtidy.git>
-   3. From the project's root directory execute `poetry install` to build and install **MailTidy** into your active Python envvironemnt. 
+   3. From the project's root directory execute `poetry install` to build and install **MailTidy** into your active Python environment. 
 
 ### Configure the IMAP account
     
@@ -62,15 +62,15 @@ The **MailTidy** workflow consists of the following steps:
     By default, a summary is created per sender domain. To create a summry for each unique sender specify the `-u`or `--unique`` option.
 
 2. It can take some time to summarise accounts with a large number of mails. Once done it is recommended that the produced `summaries.yml` file is copied to avoid the need to run a summary repeatedly while experimenting with the options.
-3. Having created a copy of `summaries.yml` file edit the original to ammend the required Actions and ages. Initially, you may wish to process just a subset of the senders. To do this simply leave the summaries for those you do not wish to process alone.
+3. Having created a copy of `summaries.yml` file edit the original to ammend the required Actions and Ages. Initially, you may wish to process just a subset of the senders. To do this simply leave the summaries for those you do not wish to process alone.
 4. Apply the Actions by executing `python3 -m mailtidy apply`
    1. Actions can be restricted to a minimum and maximum number of mails recived from a sender.
    
-      To limit an Action to senders who have received a minimum number of mails from a sender. On the command line specify  `-cn` or `--min-count` with an inetger > 0.
+      To limit an Action to senders who have received a minimum number of mails from a sender. On the command line specify  `-cn` or `--min-count` with an integer > 0.
 
-      To limit an Action to senders who have received a maximum number of mails from a sender. On the command line specify  `-cx` or `--max-count` with an inetger > 0.
+      To limit an Action to senders who have received a maximum number of mails from a sender. On the command line specify  `-cx` or `--max-count` with an integer > 0.
 
-      To limit an Action to senders who have received a number of mails from a sender within a range. On the command line specify both `-cn` or `--min-count` and `-cx` or `--max-count`. Both with an inetger > 0, where the minimum must be <= to the maximum.
+      To limit an Action to senders who have received a number of mails from a sender within a range. On the command line specify both `-cn` or `--min-count` and `-cx` or `--max-count`. Both with an integer > 0, where the minimum must be <= to the maximum.
    2. Dry runs are supported and recommended prior to making destructive changes. Specify `-n` or `--dry-run` on the command line.
 
 ## Summaries
@@ -109,7 +109,7 @@ The YAML file may use anchors (`&`) and aliases (`*`) to abbreviate these defini
   age: 0
   count: 1
   first_datetime: 2023-03-18 19:03:03+01:00
-  from_: 'someoneelse@elseswhere.com'
+  from_: 'someoneelse@elsewhere.com'
   last_datetime: 2023-03-18 19:03:03+01:00
 ```
 
