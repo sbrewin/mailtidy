@@ -133,6 +133,9 @@ The below lists the supported Python Action enumeration, the action performed an
 - Action.PRINT_HEADERS
   - Print the headers of the selected emails to `stdout`
   - `!Action 'print_headers'`
+- Action.MBOX
+  - Export the selected emails to MBOX format stored in database whose location is specified by the command line option `-m` or `--mbox-path`
+  - `!Action 'mbox'`
 
 ## Future Features
 There are many features that might be added to **MailTidy**. Amongst these are:

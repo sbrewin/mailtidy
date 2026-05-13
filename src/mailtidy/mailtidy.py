@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 import argparse
 import logging
+import re
 logger = logging.getLogger(__name__)
 from abc import ABC, abstractmethod
 from enum import Enum
 from dataclasses import dataclass
 from datetime import date, datetime, timezone, timedelta
 from imap_tools import MailBox, A, MailMessage
+from mailbox import mbox, mboxMessage
 from tqdm import tqdm
 from yaml import dump, unsafe_load as load_yaml, YAMLObject, add_constructor, add_representer
 from pathlib import Path
@@ -28,6 +30,7 @@ class Action(Enum):
     FLAG_DRAFT = "draft"
     FLAG_RECENT = "recent"
     NONE = "none"
+    MBOX = "mbox"
 
 action_representer = lambda dumper, data: dumper.represent_scalar(u'!Action', data.value)
 add_representer(Action, action_representer)
@@ -94,8 +97,10 @@ class MailboxManager:
             self.connect()
         message_parts = \
             f"(BODY{'' if mark_seen else '.PEEK'}[{'HEADER' if headers_only else ''}] UID FLAGS RFC822.SIZE)"
-        return self.mailbox._fetch_in_bulk(uid_list=uids, message_parts=message_parts, reverse=False, bulk=3)
-    
+        message_generator = self.mailbox._fetch_in_bulk(uid_list=uids, message_parts=message_parts, reverse=False, bulk=bulk)
+        for fetch_item in message_generator:
+            yield MailMessage(fetch_item)
+   
     def fetch_summaries(self, unique: bool = False) -> dict:
         '''Fetch a map of summaries of emails keyed by sender.
         '''
@@ -178,14 +183,44 @@ class MailboxManager:
     def print_all_uids(self, uids: Sequence[str], bulk = DEFAULT_BULK_SIZE) -> None:
         if not self.logged_in:
             self.connect()
+        repl = r'[\r\n]+'
         for message in self.fetch_uids(uids, mark_seen=False, headers_only=False, bulk=bulk):
-            print(message)
+            result = "" 
+            for key, value in message.headers.items():
+                result += f'{key}: {value}\n'
+            txt = re.sub(repl, "", message.text)
+            if txt:
+                result += f', {txt}'
+            html = re.sub(repl, "", message.html)
+            if html:
+                result += f', {html}'
+            print(f'{result}\n')
 
     def print_headers_uids(self, uids: Sequence[str], bulk = DEFAULT_BULK_SIZE) -> None:
         if not self.logged_in:
             self.connect()
         for message in self.fetch_uids(uids, mark_seen=False, headers_only=True, bulk=bulk):
-            print(message)
+            result = "" 
+            for key, value in message.headers.items():
+                result += f'{key}: {value}\n'
+            print(f'{result}\n')
+
+    def mbox_uids(self, path: str, uids: Sequence[str], bulk = DEFAULT_BULK_SIZE) -> None:
+        if not self.logged_in:
+            self.connect()
+        try:
+            mb = mbox(path, create=True)
+            #mb.lock()    
+            for message in self.fetch_uids(uids, mark_seen=False, headers_only=False, bulk=bulk):
+                #mbMessage = mboxMessage(message.obj)
+                mbMessage = mboxMessage(message.obj) 
+                mb.add(mbMessage)
+        except Exception as e:
+            logger.exception("Error exporting emails to mbox: {e}")
+        finally:
+            if mb:
+                mb.unlock()    
+                mb.close()
 
 class AbstractCommand(ABC):
     """Abstract base class for commands to execute on the mailbox."""
@@ -211,9 +246,10 @@ class SummaryCommand:
 
 class ApplyCommand:
     """Command to apply actions to emails in the mailbox based on summaries."""
-    def __init__(self, manager: MailboxManager, input_file: str, dry_run: bool = False, min_count: int = 0, max_count: int = 0) -> None:
+    def __init__(self, manager: MailboxManager, input_file: str, mbox_path: str, dry_run: bool = False, min_count: int = 0, max_count: int = 0) -> None:
         self.manager = manager
         self.input_file = input_file
+        self.mbox_path = mbox_path
         self.dry_run = dry_run
         self.min_count = min_count
         self.max_count = max_count
@@ -249,12 +285,16 @@ class ApplyCommand:
                     self.manager.print_all_uids(uids)
                 elif summary.action == Action.PRINT_HEADERS:
                     self.manager.print_headers_uids(uids)
+                elif summary.action == Action.MBOX:
+                    if self.dry_run:
+                        logger.info(f"DRY RUN: Would export {len(uids)} emails to mbox at {self.mbox_path} ...")
+                    else:
+                        self.manager.mbox_uids(self.mbox_path, uids)
                 #TODO: Add support for flagging actions.
                 elif summary.action in [Action.FLAG_ANSWERED, Action.FLAG_DELETED, Action.FLAG_DRAFT, Action.FLAG_FLAGGED, Action.FLAG_RECENT, Action.FLAG_SEEN]:
                     logger.warning(f"Flagging action {summary.action} is not yet implemented. Skipping sender {summary.from_}.")
             except Exception as e:
-                logger.error(f"Error processing sender {summary.from_}: {e}")   
-            
+                logger.error(f"Error processing sender {summary.from_}: {e}")              
         return 0
 
 def main() -> None:
@@ -271,6 +311,7 @@ def main() -> None:
     apply_parser.add_argument('-n', '--dry-run', action='store_true', help='Perform a dry run without making changes (default: False)')
     apply_parser.add_argument('-nc', '--min-count', type=int, default=0, help='Minimum received message count (default: 0, no minimum, must be greater than or equal to max-count)')
     apply_parser.add_argument('-xc', '--max-count', type=int, default=0, help='Maximum received message count (default: 0, no maximum, must be less than or equal to min-count)') 
+    apply_parser.add_argument('-m', '--mbox-path', type=str, default="mailbox.mbox", help='Path to the mbox file (default: mailbox.mbox)')
     
     args = parser.parse_args()
     if args.debug:
@@ -289,7 +330,7 @@ def main() -> None:
         if args.command == 'summarise':
             rc = SummaryCommand(manager, args.file, unique=args.unique).execute()
         elif args.command == 'apply':
-            rc = ApplyCommand(manager, args.file, dry_run=args.dry_run, min_count=args.min_count, max_count=args.max_count).execute()
+            rc = ApplyCommand(manager, args.file, dry_run=args.dry_run, mbox_path=args.mbox_path, min_count=args.min_count, max_count=args.max_count).execute()
     finally:
         if manager.mailbox:
             #manager.disconnect()
